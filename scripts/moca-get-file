@@ -12,7 +12,7 @@ def main():
         description='Manipulate the filesystem on a BCM6802-based MoCA adapter.'
     )
     parser.add_argument(
-        '--host', '-h',
+        '-H', '--host',
         type=str, nargs=1,
         default='192.168.144.30'
     )
@@ -20,18 +20,22 @@ def main():
     parser.add_argument('file', type=str, nargs='*')
     args = parser.parse_args()
 
-    output = args.outfile[0]
+    output = args.outfile
     if output is None:
         output = sys.stdout
+        progress = None
+    else:
+        output = open(output[0], 'w+')
+        progress = sys.stdout
 
-    m = MoCAFiles()
+    m = MoCAFiles(args.host[0])
     if len(args.file) == 0:
         files = m.get_file_map()
         for name in files:
             print(name, file=output)
 
     for f in args.file:
-        m.get_file(f, output.buffer)
+        m.get_file(f, output.buffer, progress)
 
     return 0
 

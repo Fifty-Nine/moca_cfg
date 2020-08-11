@@ -14,5 +14,6 @@ setup(
     ],
     tests_require=[
         'pytest'
-    ]
+    ],
+    scripts=['scripts/moca-get-file']
 )
