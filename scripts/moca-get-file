@@ -8,7 +8,6 @@ import sys
 from moca_cfg import MoCAFiles
 
 def main():
-    # pylint: disable
     parser = argparse.ArgumentParser(
         description='Manipulate the filesystem on a BCM6802-based MoCA adapter.'
     )
