@@ -1,10 +1,9 @@
 import io
 import itertools
-import pprint
 import re
-import sys
 
 import requests
+
 
 class MoCAFiles:
     """
@@ -12,7 +11,10 @@ class MoCAFiles:
     device with an exposed command shell.
     """
     dir_re = re.compile(r'(0x[0-9a-f]+)\s+([0-9]+)\s+(.*)$', re.I | re.M)
-    hex_re = re.compile(r'([0-9a-f]+) \|\s+(([0-9a-f]+ )*[0-9a-f]+) \| .*$', re.I | re.M)
+    hex_re = re.compile(
+        r'([0-9a-f]+) \|\s+(([0-9a-f]+ )*[0-9a-f]+) \| .*$',
+        re.I | re.M
+    )
 
     def __init__(self, host="192.168.144.30"):
         """Create a new instance for interacting with a particular host.
@@ -24,10 +26,10 @@ class MoCAFiles:
     def _make_url(self, *args):
         url = 'http://'
         url += self.host
-        url += '/cmd.sh?'
+        url += '/cmd.sh'
 
-        for arg in args:
-            url += '&'
+        for i, arg in enumerate(args):
+            url += '?' if i == 0 else '&'
             url += arg
 
         return url
@@ -40,13 +42,12 @@ class MoCAFiles:
         """
         r = requests.get(self._make_url("dir"))
         return {
-            m.group(3) : {
+            m.group(3): {
                 'size': int(m.group(2), 10),
                 'offset': (int(m.group(1), 16) + 0x10000)
             }
             for m in type(self).dir_re.finditer(r.text)
         }
-
 
     def get_bytes(self, flash_addr):
         """Get some bytes from the specified address in flash memory.
@@ -56,8 +57,8 @@ class MoCAFiles:
         """
         r = requests.get(self._make_url("flash-dump", hex(flash_addr)))
         return b''.join(
-            bytes.fromhex(l)
-            for l in itertools.chain(
+            bytes.fromhex(line)
+            for line in itertools.chain(
                 m.group(2) for m in type(self).hex_re.finditer(r.text)
             )
         )
