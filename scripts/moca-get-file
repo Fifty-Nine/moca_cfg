@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+# pylint: disable=missing-function-docstring
+
+import argparse
+from pathlib import Path
+import sys
+
+from moca_cfg import MoCAFiles
+
+def main():
+    # pylint: disable
+    parser = argparse.ArgumentParser(
+        description='Manipulate the filesystem on a BCM6802-based MoCA adapter.'
+    )
+    parser.add_argument(
+        '--host', '-h',
+        type=str, nargs=1,
+        default='192.168.144.30'
+    )
+    parser.add_argument('--outfile', '-o', type=Path, nargs=1, default=None)
+    parser.add_argument('file', type=str, nargs='*')
+    args = parser.parse_args()
+
+    output = args.outfile[0]
+    if output is None:
+        output = sys.stdout
+
+    m = MoCAFiles()
+    if len(args.file) == 0:
+        files = m.get_file_map()
+        for name in files:
+            print(name, file=output)
+
+    for f in args.file:
+        m.get_file(f, output.buffer)
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
