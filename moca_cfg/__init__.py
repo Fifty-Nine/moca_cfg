@@ -93,4 +93,4 @@ class MoCAFiles:
 
         out.flush()
 
-        return ostream
+        return out.getvalue() if ostream is None else None
