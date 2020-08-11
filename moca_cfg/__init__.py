@@ -1,6 +1,7 @@
 import io
 import itertools
 import re
+import os
 
 import requests
 
@@ -63,7 +64,7 @@ class MoCAFiles:
             )
         )
 
-    def get_file(self, name, ostream=None):
+    def get_file(self, name, ostream=None, progress=None):
         """Get a file from flash memory on the remote host.
 
         Given a filename, attempt to download the file from the remote host
@@ -78,11 +79,15 @@ class MoCAFiles:
         f = self.get_file_map()[name]
 
         addr = f['offset']
-        remaining = f['size']
+        size = f['size']
+        remaining = size
         if ostream is not None:
             out = ostream
         else:
             out = io.BytesIO()
+
+        if progress is None:
+            progress = open(os.devnull, 'w')
 
         while remaining > 0:
             part = self.get_bytes(addr)
@@ -90,6 +95,9 @@ class MoCAFiles:
             addr += stride
             out.write(part[:stride])
             remaining -= stride
+            print(f'{remaining} bytes remaining '
+                  f'({100.0*(size - remaining)/size:2.2f}%)',
+                  file=progress)
 
         out.flush()
 
