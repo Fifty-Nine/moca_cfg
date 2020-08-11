@@ -53,6 +53,9 @@ class MoCAFiles:
     def get_bytes(self, flash_addr):
         """Get some bytes from the specified address in flash memory.
 
+        This just returns whatever the remote provides for the given memory
+        address. Typically this will be between 73 and 128 bytes.
+
         :param int flash_addr: The address in flash memory.
         :return: The bytes returned by the remote host.
         """
@@ -64,6 +67,54 @@ class MoCAFiles:
             )
         )
 
+    def get_bytes_range(self, addr, length, ostream=None, progress=None):
+        """Get a range of bytes from the flash memory.
+
+        Like get_bytes, this returns data from the remote host's flash memory.
+        Unlike get_bytes, however, this returns the exact number of bytes
+        requested.
+
+        :param int addr: The address in flash memory.
+        :param int length: The number of bytes to read.
+        :param ostream: If specified, bytes are written to this file instead of
+                        returned.
+        :param progress: If specified, information about the progress of the
+                         download is written to this file in a human-readable
+                         format.
+        :return: The bytes read from the remote host.
+        """
+
+        if progress is None:
+            progress = open(os.devnull, 'w')
+
+        if ostream is None:
+            out = io.BytesIO()
+        else:
+            out = ostream
+
+        remaining = length
+        while remaining > 0:
+            part = self.get_bytes(addr)
+            stride = min(remaining, len(part))
+            addr += stride
+            out.write(part[:stride])
+            remaining -= stride
+            print(f'{remaining} bytes remaining '
+                  f'({100.0*(length - remaining)/length:2.2f}%)',
+                  file=progress)
+
+        out.flush()
+
+        return out.getvalue() if ostream is None else None
+
+    def get_entire_contents(self, ostream=None, progress=None):
+        """Get the entire contents of the 8 MB flash memory.
+
+        Dumps the entire contents of the flash memory. Note that this
+        assumes the chip is 8 MB, as is the case on the Actiontec ECB6200.
+        """
+        return self.get_bytes_range(0, 0x800000, ostream, progress)
+
     def get_file(self, name, ostream=None, progress=None):
         """Get a file from flash memory on the remote host.
 
@@ -73,32 +124,9 @@ class MoCAFiles:
 
         :param str name: The name of the file on the remote host.
         :param ostream: A file-like object to which data will be written.
+        :raise: KeyError when `name` does not exist.
         :return: The contents of the file, or None if `ostream` is not None, in
         which case data will be written to `ostream`.
         """
         f = self.get_file_map()[name]
-
-        addr = f['offset']
-        size = f['size']
-        remaining = size
-        if ostream is not None:
-            out = ostream
-        else:
-            out = io.BytesIO()
-
-        if progress is None:
-            progress = open(os.devnull, 'w')
-
-        while remaining > 0:
-            part = self.get_bytes(addr)
-            stride = min(remaining, len(part))
-            addr += stride
-            out.write(part[:stride])
-            remaining -= stride
-            print(f'{remaining} bytes remaining '
-                  f'({100.0*(size - remaining)/size:2.2f}%)',
-                  file=progress)
-
-        out.flush()
-
-        return out.getvalue() if ostream is None else None
+        return self.get_bytes_range(f['offset'], f['size'], ostream, progress)
