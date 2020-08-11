@@ -51,6 +51,7 @@ class MoCAFiles:
     def get_bytes(self, flash_addr):
         """Get some bytes from the specified address in flash memory.
 
+        :param int flash_addr: The address in flash memory.
         :return: The bytes returned by the remote host.
         """
         r = requests.get(self._make_url("flash-dump", hex(flash_addr)))
